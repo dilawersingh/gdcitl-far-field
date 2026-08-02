@@ -3,7 +3,7 @@
 Method and analysis code for:
 
 > D. Singh, A. J. Wojcik and T. D. Wilkinson, "Camera-in-the-loop gradient
-> descent hologram generation for Fraunhofer diffraction," *Optica* (submitted).
+> descent hologram generation for Fraunhofer diffraction" (under consideration).
 
 **This repository holds the code only.** The experimental record, the simulation
 record and the scored results are deposited in the University of Cambridge Apollo
