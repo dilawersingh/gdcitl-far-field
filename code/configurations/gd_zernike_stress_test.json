@@ -1,0 +1,63 @@
+{
+  "_comment": "Config for the GD+CITL far-field aberration stress test (pure simulation). The real camera is replaced by a SYNTHETIC aberrated one: each iteration, a fixed Zernike aberration is added to the current hologram phase, propagated through the SAME faithful forward model gd.run uses for its clean gradients, and the resulting intensity is fed back as the 'measurement'. The optimizer's own model stays un-aberrated, so it is blind to the aberration and can sense it only through the feedback -- exactly as on a real bench. This file has been edited for public release: paths are now relative to the deposit root and resolved by code/analysis/paths.py. See README.md.",
+
+  "_two_runs_comment": "The reported sweep is two runs of this config differing in ONE field, run.citl_init_phase: 'random' produced random_start_*, 'warm_start' produced warm_start_*. run.gd_init_phase stays 'random' in both, which is why the no-feedback baseline is identical between the two result files and can serve as a shared reference.",
+
+  "paths": {
+    "save": ["results/simulations/zernike_stress_test"],
+    "images": ["targets"]
+  },
+  "experiment": {
+    "name": "zernike_stress_test",
+    "description": "GD+CITL far-field aberration stress test (simulation). Two sweeps: (1) per-mode -- low-order Noll modes swept independently across magnitudes, with piston kept as a zero-effect null control (pure global phase, verified zero intensity effect); tip/tilt (Noll 2,3) EXCLUDED, since they are pure lateral shifts and per-pixel gradient feedback cannot represent a global translation the way it can represent local blur correction. (2) combined -- the six image-degrading modes (defocus, astigmatism x2, coma x2, spherical) at equal RMS with total RMS swept, so the abscissa reflects only genuine reconstruction-degrading wavefront error. The magnitude sweep is denser between 0.05 and 0.10 waves RMS, where the recovery advantage transitions from several dB down to a noise-level plateau.",
+    "overwrite": false
+  },
+  "physics": {
+    "_comment": "MUST match the faithful-model settings used everywhere else. Passed BOTH to gd.run() (the optimizer's clean model) AND to the synthetic camera (which adds the aberration then uses this same model), so optimizer and 'measurement' differ ONLY by the aberration.",
+    "pad_factor": 2,
+    "apply_sinc": true,
+    "fill_factor": 0.91,
+    "fill_is_areal": true
+  },
+  "run": {
+    "height": 1000,
+    "width": 1000,
+    "gd_iterations": 750,
+    "gd_lr": 0.03,
+    "gd_optimizer_name": "adam",
+    "gd_tv_weight": 0.0,
+    "gd_init_phase": "random",
+    "citl_init_phase": "warm_start",
+    "target_formulation": "amplitude",
+    "seed": 0,
+    "_dc_mask_comment": "No dc_mask in pure simulation -- the zero-order spike is a physical bench artifact that does not exist in a synthetic measurement, so gd.run is called with dc_mask=None."
+  },
+  "aberrations": {
+    "_comment": "Noll indices used: 1 piston, 4 defocus, 5 astig_oblique, 6 astig_vertical, 7 coma_y, 8 coma_x, 11 spherical. Tip/tilt (2, 3) are omitted -- see experiment.description. Magnitudes are in WAVES of RMS wavefront error (1 wave = 2*pi rad), spanning the diffraction limit (~0.05-0.07) through a realistic bench (~0.1-0.3) to clearly degraded (0.75-1.0).",
+    "magnitudes_waves_rms": [0.0, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.15, 0.2, 0.3, 0.5, 0.75, 1.0],
+    "per_mode": {
+      "_comment": "Per-mode sweep: each of these 7 modes swept independently across all magnitudes. Piston is included as the zero-effect null control. Tip/tilt are not included.",
+      "enabled": true,
+      "noll_indices": [1, 4, 5, 6, 7, 8, 11]
+    },
+    "combined": {
+      "_comment": "Combined sweep: these 6 image-degrading modes present simultaneously at equal RMS, total RMS swept. Piston (zero effect) and tip/tilt (pure translation) deliberately EXCLUDED so the total-RMS abscissa reflects only genuine reconstruction-degrading wavefront error.",
+      "enabled": true,
+      "noll_indices": [4, 5, 6, 7, 8, 11]
+    }
+  },
+  "images_subset": {
+    "_comment": "Set use_subset true and list stems to validate the curve shape on a few images before committing to all 18. The reported sweep used all 18, i.e. use_subset false.",
+    "use_subset": false,
+    "stems": []
+  },
+  "save_visuals": {
+    "_comment": "Opt-in diagnostic figures: Target | aberrated-system view of the no-feedback hologram | GD+CITL recovery, for a selected subset of images, modes and magnitudes. Saves a PNG and the three raw .npy arrays per condition under <experiment.dir>/figures/<image_stem>/.",
+    "enabled": true,
+    "image_stems": ["alley", "cat", "guy", "face"],
+    "noll_indices": [1, 4, 5, 6, 7, 8, 11],
+    "magnitudes_waves_rms": [0.05, 0.08, 0.5],
+    "save_combined": true,
+    "dpi": 200
+  }
+}

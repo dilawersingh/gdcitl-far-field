@@ -1,0 +1,72 @@
+{
+  "_comment": "Launcher configuration for the physical camera-in-the-loop experiment. Paths are relative to the deposit root and are resolved by code/analysis/paths.py, so nothing needs editing before the analysis runs. Set GDCITL_ROOT to point at a different tree. This file has been edited for public release -- machine-specific paths have been replaced, and parameters belonging to an arm not reported in this paper have been removed. See README.md.",
+
+  "paths": {
+    "save_base": ["results/experiments"],
+    "image_files": ["targets"],
+    "exposure_settings": ["code/configurations/exposure_settings.json"],
+    "simulation_comparison_base": ["results/simulations"]
+  },
+
+  "dataset_name": "Synthetic - PyTorch",
+
+  "experiment": {
+    "description": "Per-iteration camera-in-the-loop gradient descent on the physical system. The hologram under optimization is displayed, photographed, and the measurement supplies the value of the loss while the gradient is taken through the simulated Fraunhofer model. No learned model and no corrector. 750 GD iterations per target, one camera exposure each.",
+    "overwrite": false
+  },
+
+  "hardware": {
+    "slm_shape": [1080, 1920],
+    "dc_radius": 20,
+    "dc_auto_center": false,
+    "dc_center": [495, 510],
+    "settle_time_s": 0.30,
+    "capture_timeout_s": 15.0,
+    "dll_path": "<PATH TO CANON EDSDK EDSDK.dll>",
+    "calibration_mode": "manual",
+    "_manual_alignment_comment": "The fixed rotation and region of interest applied to every capture in this work, including captures acquired in separate sessions. Never refit during optimization.",
+    "manual_alignment": {
+      "x0": 1083,
+      "y0": 129,
+      "w": 3267,
+      "h": 3265,
+      "rotation_deg": -0.06
+    }
+  },
+
+  "run": {
+    "height": 1000,
+    "width": 1000,
+    "gd_iterations": 750,
+    "target_formulation": "amplitude",
+    "gd_lr": 0.03,
+    "gd_optimizer_name": "adam",
+    "gd_tv_weight": 0.0,
+    "save_all_iteration_pngs": false
+  },
+
+  "conditions": [
+    {
+      "physics_name": "ideal",
+      "pad_factor": 1,
+      "apply_sinc": false,
+      "fill_factor": 1,
+      "fill_is_areal": true,
+      "init_variants": [
+        {"init_name": "random_init", "gd_init_phase": "random"},
+        {"init_name": "warm_start",  "gd_init_phase": "warm_start"}
+      ]
+    },
+    {
+      "physics_name": "faithful",
+      "pad_factor": 2,
+      "apply_sinc": true,
+      "fill_factor": 0.91,
+      "fill_is_areal": true,
+      "init_variants": [
+        {"init_name": "random_init", "gd_init_phase": "random"},
+        {"init_name": "warm_start",  "gd_init_phase": "warm_start"}
+      ]
+    }
+  ]
+}

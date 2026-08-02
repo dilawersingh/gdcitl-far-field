@@ -1,0 +1,40 @@
+{
+  "_comment": "Launcher configuration for the simulation-only gradient-descent sweep that provides the `simulation` source in scored.json and the seed holograms for the simulation-seeded initialization. This file has been edited for public release: paths are now relative to the deposit root and resolved by code/analysis/paths.py, and settings belonging to methods not reported in this paper removed. See README.md.",
+
+  "paths": {
+    "save": ["results/simulations/simulation_comparison_faithful"],
+    "multiple_images": ["targets"]
+  },
+
+  "dataset_name": "Synthetic - PyTorch",
+
+  "experiment": {
+    "name": "simulation_comparison",
+    "description": "Gradient-descent phase retrieval against the simulated forward model, swept over iteration budget, on all 18 targets. The 750-iteration result is the no-feedback baseline reported in the paper and the seed for the simulation-seeded initialization. Run under two target formulations: 'amplitude' is the published convention and writes to gd/; 'intensity' is additional and writes to the namespaced sibling gd_intensity_target/. Note that gd.run squares an amplitude target to recover the intensity training target, so the loss is formed in intensity either way.",
+    "overwrite": false,
+    "target_formulations": ["amplitude", "intensity"]
+  },
+
+  "slm_shape": [1000, 1000],
+
+  "physics": {
+    "pad_factor": 2,
+    "apply_sinc": true,
+    "fill_factor": 0.91,
+    "fill_is_areal": true
+  },
+
+  "gd": {
+    "iterations_list": [10, 25, 50, 75, 100, 200, 250, 300, 500, 750],
+    "init_phase": "random",
+    "lr": 0.03,
+    "optimizer_name": "adam",
+    "loss_type": "mse_sum",
+    "tv_weight": 0.0,
+    "lowpass": false,
+    "lpf_sigma": 0.08,
+    "add_carrier": false,
+    "show": false,
+    "log_every": false
+  }
+}
