@@ -387,6 +387,8 @@ def table(d: dict, tables_dir: Path) -> None:
         r"aberration correction. Mean and standard deviation across the "
         r"magnitude sweep.}",
         r"\label{tab:piston}",
+        # \footnotesize matches the manuscript.
+        r"\footnotesize",
         r"\begin{tabular}{l S[table-format=+1.3] S[table-format=1.3]}",
         r"\toprule",
         r"Condition & {Mean $\Delta$PSNR (dB)} & {SD across magnitudes} \\",

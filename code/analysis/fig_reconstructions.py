@@ -16,8 +16,8 @@ Two layouts, both rendered for every target.
       target | plain GD | GD+CITL, whole frame
 
 Outputs:
-    review_<physics>/roi/<target>.{png,pdf}    ROI layout
-    review_<physics>/full/<target>.{png,pdf}   full frame
+    reconstructions_<physics>/roi/<target>.{png,pdf}    ROI layout
+    reconstructions_<physics>/full/<target>.{png,pdf}   full frame
     grid/<target>.{png,pdf}                    2x2, method x forward model
 
 One file per target per layout. Pick what the manuscript needs from these rather
@@ -58,8 +58,9 @@ FOUR CONSIDERATIONS, each fixed here rather than left to care.
    where CITL happens to win). roi.json itself is the record - version it with
    the paper repo.
 
-PSNR INSETS are read from scored.json, never recomputed, so an inset cannot
-disagree with a table. This is the one figure where numbers are drawn on an
+METRIC LABELS (PSNR, and SSIM and LPIPS when scored.json carries them) are
+read from scored.json, never recomputed, so a label cannot disagree with a
+table. This is the one figure where numbers are drawn on an
 image: here a number labels the panel it sits on rather than being a statistic
 read off an axis, and it is the convention for reconstruction montages.
 """
@@ -235,15 +236,35 @@ def _psnr(scored, target, physics, source):
 
 
 
+def _metrics(scored, target, physics, source):
+    """The scored.json record for one panel, or None."""
+    for r in scored:
+        if (r["target"] == target and r["physics"] == physics
+                and r["source"] == source):
+            return r
+    return None
+
+
 def _title(ax, label, psnr=None, fontsize=6.5, pad=3):
-    """Panel label, with PSNR in the title rather than overlaid on the image --
-    an inset sits on unpredictable content and can be unreadable depending on
-    the crop.
+    """Panel label, with the metrics in the title rather than overlaid on the
+    image, since an inset sits on unpredictable content and can be unreadable
+    depending on the crop.
+
+    psnr is either a number (PSNR only) or a scored.json record, in which case
+    SSIM and LPIPS are added, one per line, when the record carries them.
 
     fontsize is passed in, not fixed here, because these layouts are authored at
     different widths and are all placed at \\linewidth. See figstyle.title_size.
     """
-    txt = label if psnr is None else f"{label}\nPSNR {psnr:.2f} dB"
+    if psnr is None:
+        txt = label
+    elif isinstance(psnr, dict):
+        txt = f"{label}\nPSNR {psnr['psnr']:.2f} dB"
+        if "lpips" in psnr:
+            # One metric per line: side by side they collide in the 1x4 layout.
+            txt += f"\nSSIM {psnr['ssim']:.3f}\nLPIPS {psnr['lpips']:.3f}"
+    else:
+        txt = f"{label}\nPSNR {psnr:.2f} dB"
     ax.set_title(txt, fontsize=fontsize, color=C_INK, pad=pad, linespacing=1.35)
 
 
@@ -282,7 +303,7 @@ def draw_roi_panel(row, scored, physics, out_path, width=9.0, dpi=400):
         for sp in axes[j].spines.values():
             sp.set_visible(True); sp.set_color(ROI_BOX_COLOUR); sp.set_linewidth(1.0)
         _title(axes[j], f"{label}{suffix}",
-               None if src == "target" else _psnr(scored, row["target"], physics, src), fontsize=fs, pad=5)
+               None if src == "target" else _metrics(scored, row["target"], physics, src), fontsize=fs, pad=5)
 
     fig.subplots_adjust(wspace=0.03)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
@@ -303,7 +324,7 @@ def draw_full_panel(row, scored, physics, out_path, width=9.0, dpi=400):
         img, vmax = _panel_source(row, src)
         _show(axes[j], img, vmax, zoom=False)
         _title(axes[j], label,
-               None if src == "target" else _psnr(scored, row["target"], physics, src), fontsize=fs, pad=5)
+               None if src == "target" else _metrics(scored, row["target"], physics, src), fontsize=fs, pad=5)
     fig.subplots_adjust(wspace=0.03)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(f"{out_path}.pdf")
@@ -312,11 +333,11 @@ def draw_full_panel(row, scored, physics, out_path, width=9.0, dpi=400):
 
 
 def run(scored_path, out_dir, repo, physics="faithful", select=None,
-        citl_source=CITL_SOURCE, review_width=9.0,
-        review_dpi=400, roi_file=None) -> list[dict]:
+        citl_source=CITL_SOURCE, panel_width=9.0,
+        panel_dpi=400, roi_file=None) -> list[dict]:
     out_dir = Path(out_dir)
-    roi_dir = out_dir / f"review_{physics}" / "roi"
-    full_dir = out_dir / f"review_{physics}" / "full"
+    roi_dir = out_dir / f"reconstructions_{physics}" / "roi"
+    full_dir = out_dir / f"reconstructions_{physics}" / "full"
     for d in (roi_dir, full_dir):
         d.mkdir(parents=True, exist_ok=True)
 
@@ -337,9 +358,9 @@ def run(scored_path, out_dir, repo, physics="faithful", select=None,
 
     for row in rows:
         draw_roi_panel(row, scored, physics, roi_dir / row["target"],
-                       width=review_width, dpi=review_dpi)
+                       width=panel_width, dpi=panel_dpi)
         draw_full_panel(row, scored, physics, full_dir / row["target"],
-                        width=review_width, dpi=review_dpi)
+                        width=panel_width, dpi=panel_dpi)
     print(f"  {len(rows)} ROI panels  -> {roi_dir}")
     print(f"  {len(rows)} full panels -> {full_dir}")
 
@@ -407,9 +428,10 @@ def draw_grid_panel(row, scored, out_path, width=7.0, dpi=400, annotate=True,
         img, vmax = _panel_source(sub, src)
         _show(ax, img[y0:y0 + side, x0:x0 + side], vmax, zoom=not full_frame)
         _title(ax, f"{label}{'' if full_frame else ' (ROI)'}",
-               _psnr(scored, row["target"], phys, src) if annotate else None, fontsize=fs, pad=5)
+               _metrics(scored, row["target"], phys, src) if annotate else None, fontsize=fs, pad=5)
 
-    fig.subplots_adjust(wspace=0.03, hspace=0.26)
+    # Room for a four-line title above the second row.
+    fig.subplots_adjust(wspace=0.03, hspace=0.42)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(f"{out_path}.pdf")
     fig.savefig(f"{out_path}.png", dpi=dpi)
@@ -447,8 +469,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--scored", type=Path, default=Path("scored.json"))
     ap.add_argument("--out", type=Path, default=Path("figures"))
+    # evaluate_methods.py and raw_camera_processor.py live in code/method/.
     ap.add_argument("--repo", type=Path,
-                    default=Path.home() / "Documents/GitHub/holography")
+                    default=Path(__file__).resolve().parents[1] / "method")
     ap.add_argument("--physics", default="faithful", choices=["faithful", "ideal"])
     ap.add_argument("--select", nargs="*", default=None)
     a = ap.parse_args()

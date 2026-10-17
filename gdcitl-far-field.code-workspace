@@ -1,0 +1,63 @@
+{
+	"folders": [
+		{
+			"name": "analysis",
+			"path": "code/analysis"
+		},
+		{
+			"name": "method",
+			"path": "code/method"
+		},
+		{
+			"name": "notebooks",
+			"path": "code/notebooks"
+		},
+		{
+			"name": "configurations",
+			"path": "code/configurations"
+		},
+		{
+			"name": "results",
+			"path": "results"
+		},
+		{
+			"name": "output",
+			"path": "output"
+		},
+		{
+			"name": "targets",
+			"path": "targets"
+		},
+		{
+			"name": "deposit root",
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.analysis.extraPaths": [
+			"${workspaceFolder:analysis}",
+			"${workspaceFolder:method}"
+		],
+		"python.autoComplete.extraPaths": [
+			"${workspaceFolder:analysis}",
+			"${workspaceFolder:method}"
+		],
+		"jupyter.notebookFileRoot": "${fileDirname}",
+		"files.exclude": {
+			"**/__pycache__": true,
+			"**/.ipynb_checkpoints": true
+		},
+		"search.exclude": {
+			"**/__pycache__": true,
+			"**/.ipynb_checkpoints": true,
+			"**/results/**/dslr captures": true
+		},
+		"files.eol": "\n"
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-python.python",
+			"ms-toolsai.jupyter"
+		]
+	}
+}

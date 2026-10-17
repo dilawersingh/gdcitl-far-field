@@ -21,6 +21,17 @@ diffed and linked to without downloading gigabytes of camera captures.
 
 The deposit becomes publicly available on publication.
 
+## Versions
+
+The deposit is versioned, and this repository is tagged to match:
+
+| tag | deposit | what changed |
+|---|---|---|
+| `v1.0` | version 1, 10.17863/CAM.132918 | first release |
+| `v2.0` | version 2 | adds LPIPS and HaarPSI to the scoring, the zero-order sensitivity analysis, and the tables built from them |
+
+The DOI above is version 1. Its landing page links to every later version.
+
 ## What is here
 
 | path | what it is |

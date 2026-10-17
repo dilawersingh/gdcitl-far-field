@@ -40,7 +40,7 @@ scoring time even though the replay run's hardware block carries no DC entries.
 
 Usage:
     python score_captures.py --dry-run                 # inventory only
-    python score_captures.py --repo /path/to/holography --out scored.json
+    python score_captures.py --repo code/method --out scored.json
 """
 from __future__ import annotations
 
@@ -164,7 +164,10 @@ def build_scorer(repo: Path):
 
 
 def score_all(results_root: Path, replay_root: Path, stock_root: Path,
-              repo: Path, out_path: Path, dry_run: bool) -> None:
+              repo: Path, out_path: Path, dry_run: bool,
+              perceptual: bool = True) -> None:
+    """perceptual=True adds LPIPS and HaarPSI (perceptual.py) to every record.
+    They are appended after the compute_metrics fields, which are unchanged."""
     run = replay_run(replay_root)
     print(f"replay run: {run.name}")
 
@@ -225,6 +228,8 @@ def score_all(results_root: Path, replay_root: Path, stock_root: Path,
         return
 
     compute_metrics, prepare_target, target_for_pad, load_capture = build_scorer(repo)
+    if perceptual:
+        from perceptual import perceptual_metrics
     cal = gdcitl.calibration(results_root)
     roi = {k: cal["roi"][k] for k in ("y0", "x0", "h", "w")}
     angle = cal["rotation_deg"]
@@ -256,11 +261,14 @@ def score_all(results_root: Path, replay_root: Path, stock_root: Path,
             recon = I_cam[0].detach().cpu().numpy().astype(np.float32)
 
         m = compute_metrics(recon, target_eval, pf)
+        if perceptual:
+            m.update(perceptual_metrics(recon, target_eval))
         out.append({"target": w["target"], "physics": w["physics"],
                     "source": w["source"], "best_iteration": w["best_iteration"],
                     "pad_factor": pf, **m})
         print(f"  {w['physics']:8s} {w['source']:26s} {w['target']:14s} "
-              f"PSNR={m['psnr']:6.2f} SSIM={m['ssim']:.3f} eff={m['diffraction_efficiency']:.3f}")
+              f"PSNR={m['psnr']:6.2f} SSIM={m['ssim']:.3f} eff={m['diffraction_efficiency']:.3f}"
+              + (f" LPIPS={m['lpips']:.3f} HaarPSI={m['haarpsi']:.3f}" if perceptual else ""))
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(out, indent=2))
@@ -285,8 +293,11 @@ def main() -> None:
     ap.add_argument("--repo", type=Path, default=paths.ROOT / "code" / "method")
     ap.add_argument("--out", type=Path, default=Path("scored.json"))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--no-perceptual", action="store_true",
+                    help="skip LPIPS and HaarPSI")
     a = ap.parse_args()
-    score_all(a.results, a.replay, a.stock, a.repo, a.out, a.dry_run)
+    score_all(a.results, a.replay, a.stock, a.repo, a.out, a.dry_run,
+              perceptual=not a.no_perceptual)
 
 
 if __name__ == "__main__":
