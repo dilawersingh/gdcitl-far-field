@@ -280,8 +280,7 @@ def wilcoxon(a, b) -> tuple[float, float]:
     """Paired Wilcoxon signed-rank - the pre-specified primary test.
 
     Paired because every condition is measured on the same 18 targets.
-    Non-parametric because n=18 with skew does not support a t-test, and a
-    referee will ask why a t-test was used if one is.
+    Non-parametric because n=18 with skew does not support a t-test.
     """
     from scipy.stats import wilcoxon as _w
     stat, p = _w(np.asarray(a, float), np.asarray(b, float))
